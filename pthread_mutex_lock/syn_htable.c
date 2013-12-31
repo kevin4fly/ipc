@@ -38,7 +38,14 @@ void hashnode_free(struct hashtable *ht, struct hashnode *entry)
 {
     assert(ht);
     assert(entry);
-    ht->value_free(entry->value);
+    /* we are able to call ht->value_free only if it is NOT NULL, since
+     * sometimes we don't have things to release then we give a NULL parameter
+     * to htable_init function
+     */
+    if( ht->value_free != NULL )
+    {
+        ht->value_free(entry->value);
+    }
     assert(pthread_mutex_destroy(&entry->ref_cnt_lock) == 0);
     free(entry);
 }
