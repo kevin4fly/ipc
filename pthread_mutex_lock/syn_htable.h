@@ -56,6 +56,6 @@ void hashnode_free(struct hashtable *ht, struct hashnode *entry);
 void htable_add(struct hashtable *ht,int key, void *value);
 int htable_del(struct hashtable *ht, int key, struct hashnode *valptr);
 struct hashnode *htable_search(struct hashtable *ht, int key);
-void htable_destory(struct hashtable *ht);
+void htable_destroy(struct hashtable *ht);
 
 #endif
