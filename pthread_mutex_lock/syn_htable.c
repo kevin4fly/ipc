@@ -1,6 +1,6 @@
 #include  "syn_htable.h"
 
-int hash(int key)
+static int hash(int key)
 {
     return key % MAGICNO;
 }

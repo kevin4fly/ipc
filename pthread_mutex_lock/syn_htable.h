@@ -49,7 +49,6 @@ struct hashtable
     void (*value_free)(void *value);
 };
 
-int hash(int key);
 void htable_init(struct hashtable **ht, void (*value_free)(void *value));
 struct hashnode *hashnode_new(int key, void *value);
 void hashnode_free(struct hashtable *ht, struct hashnode *entry);
