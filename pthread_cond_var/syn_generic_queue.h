@@ -12,17 +12,18 @@
 
 #include  <pthread.h>
 
-//the size of the generic queue
-#define   MAX_QUEUE_SIZE    100
+/* the size of the generic queue */
+#define   QUEUE_MAX_ELEMENTS    100
 
 /**< generic_queue: the generic queue with pthread synchronization supported
- * .queue_lock: the queue mutex lock to lock the whole queue
- * .queue_readable: the queue is ready to read
- * .queue_writable: the queue is ready to write
- * .front: the front index of the queue
- * .rear: the rear index of the queue
- * .total: the total elements of the queue currently
- * .element_size: the element size in the queue
+ * .queue_lock: to lock the whole queue
+ * .front_rear_lock: to lock front and rear fields
+ * .notfull: to test if the queue is full 
+ * .notempty: to test if the queue is empty
+ * .front: to store the front point of the queue 
+ * .rear: to store the rear point of the queue
+ * .total: to store the max elements of the queue
+ * .element_size: to store the element size in the queue
  * .element_free: the callback function to release the elements in the queue
  * .queue_element: the queue space to accommodate the elements
  *
@@ -30,7 +31,6 @@
 struct generic_queue
 {
     pthread_mutex_t queue_lock;
-    pthread_mutex_t front_rear_lock;
     pthread_cond_t notfull;
     pthread_cond_t notempty;
     int front;

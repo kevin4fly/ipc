@@ -3,31 +3,34 @@
 /**< generic_queue_init: initialize the generic cyclic queue
  * @qu: the queue to be initialized
  * @element_size: the size of the element of the queue
- * @element_free: the callback function to free the element in the queue
+ * @element_free: the callback function to free the allocated space by the element
  *
  * */
 void generic_queue_init(struct generic_queue **qu, const int element_size, void (*element_free)(void *element))
 {
     assert(element_size > 0);
-    //alloc the space for the generic queue struct since a pointer is being
-    //transferred
+    /* allocate space for struct generic queue a since pointer is being
+     * transferred as the parameter
+     * */
     (*qu) = malloc(sizeof(struct generic_queue));
     assert(*qu);
-    //initialize the mutex lock and condition variable
+
+    /* initialize the mutex lock and condition variable */
     pthread_mutex_init(&(*qu)->queue_lock,NULL);
-    pthread_mutex_init(&(*qu)->front_rear_lock,NULL);
     pthread_cond_init(&(*qu)->notfull,NULL);
     pthread_cond_init(&(*qu)->notempty,NULL);
     (*qu)->front = 0;
     (*qu)->rear = 0;
-    (*qu)->total = MAX_QUEUE_SIZE;
+    (*qu)->total = QUEUE_MAX_ELEMENTS;
     (*qu)->element_size = element_size;
-    //alloc the space for the queue to accomodate the elements to in and out
-    //the space is set to zero so that it is easy to free
-    (*qu)->queue_element = calloc((*qu)->total * (*qu)->element_size, 1);
+
+    /* allocate the space to accomodate the elements to get in and out */
+    (*qu)->queue_element = malloc((*qu)->total * (*qu)->element_size);
     assert((*qu)->queue_element);
-    //register the callback function provided by caller to free the element
-    //in the queue
+
+    /* register the callback function provided by the caller to free the space
+     * allocated by the element itself
+     * */
     (*qu)->element_free = element_free;
 }
 
@@ -38,14 +41,7 @@ void generic_queue_init(struct generic_queue **qu, const int element_size, void 
 int generic_queue_isempty(struct generic_queue *qu)
 {
     assert(qu);
-    pthread_mutex_lock(&qu->front_rear_lock);
-    if( qu->front == qu->rear)
-    {
-        pthread_mutex_unlock(&qu->front_rear_lock);
-        return 1;
-    }
-    pthread_mutex_unlock(&qu->front_rear_lock);
-    return 0;
+    return qu->front == qu->rear;
 }
 
 /**< generic_queue_isfull: test if the generic cyclic queue is full
@@ -55,14 +51,7 @@ int generic_queue_isempty(struct generic_queue *qu)
 int generic_queue_isfull(struct generic_queue *qu)
 {
     assert(qu);
-    pthread_mutex_lock(&qu->front_rear_lock);
-    if( (qu->front+1)%qu->total == qu->rear )
-    {
-        pthread_mutex_unlock(&qu->front_rear_lock);
-        return 1;
-    }
-    pthread_mutex_unlock(&qu->front_rear_lock);
-    return 0;
+    return (qu->front+1) % (qu->total) == qu->rear;
 }
 
 /**< generic_queue_in: add an element into the generic cyclic queue
@@ -84,9 +73,7 @@ void generic_queue_in(struct generic_queue *qu, const void *entry)
     }
     void *dest_addr = (char *)qu->queue_element + qu->front * qu->element_size;
     memcpy(dest_addr,entry,qu->element_size);
-    pthread_mutex_lock(&qu->front_rear_lock);
     qu->front=(qu->front+1)%qu->total;
-    pthread_mutex_unlock(&qu->front_rear_lock);
     pthread_mutex_unlock(&qu->queue_lock);
     pthread_cond_signal(&qu->notempty);
 }
@@ -100,7 +87,7 @@ void generic_queue_out(struct generic_queue *qu, void *entry)
 {
     assert(qu);
     pthread_mutex_lock(&qu->queue_lock);
-    /* if the queue is empry, wait until the generic_queue_out is called to
+    /* if the queue is empty, wait until the generic_queue_out is called to
      * enqueue an element and then send a signal
      *
      * */
@@ -109,14 +96,12 @@ void generic_queue_out(struct generic_queue *qu, void *entry)
         pthread_cond_wait(&qu->notempty,&qu->queue_lock);
     }
     void *src_addr =  (char *)qu->queue_element + qu->element_size * qu->rear;
-    //if the entry not NULL, save the dequeue element into it
+    //if the entry not NULL, save the dequeued element into it
     if( entry != NULL )
     {
         memcpy(entry,src_addr,qu->element_size);
     }
-    pthread_mutex_lock(&qu->front_rear_lock);
     qu->rear=(qu->rear+1)%qu->total;
-    pthread_mutex_unlock(&qu->front_rear_lock);
     pthread_mutex_unlock(&qu->queue_lock);
     pthread_cond_signal(&qu->notfull);
 }
@@ -141,9 +126,9 @@ void generic_queue_free(struct generic_queue *qu)
     }
     free(qu->queue_element);
     pthread_mutex_unlock(&qu->queue_lock);
+
     //assert if we destroy them unsuccessfully
     assert(pthread_mutex_destroy(&qu->queue_lock) == 0);
-    assert(pthread_mutex_destroy(&qu->front_rear_lock) == 0);
     assert(pthread_cond_destroy(&qu->notfull) == 0);
     assert(pthread_cond_destroy(&qu->notempty) == 0);
     free(qu);
