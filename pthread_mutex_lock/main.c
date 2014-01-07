@@ -10,28 +10,35 @@ void string_free(void *value)
 
 void *pthread_add(void *arg)
 {
-    int i = (int)arg;
-    if( i % 10 == 9 )
+    int loops = (int)arg;
+    int i;
+    for( i=0 ; i<loops; i++ )
     {
-        sleep(1);
+        char value[20];
+        sprintf(value,"hello: %d\n",i);
+        puts(value);
+        htable_add(ht,i,value);
     }
-    char value[16] = "hello";
-    char src[5];
-    sprintf(src,"%d",i);
-    strcat(value,src);
-    puts(value);
-    htable_add(ht,i,value);
     pthread_exit(0);
 }
 
 void *pthread_del(void *arg)
 {
-    int i = (int)arg;
-    struct hashnode buffer;
-    if( htable_del(ht,i,&buffer) )
+    int i = 0;
+    while( i < 3 )
     {
-        printf("del %d:%s\n",buffer.key, (char *)buffer.value);
-        free(buffer.value);
+        int j;
+        for( j= 0 ; j<30 ; j++ )
+        {
+            sleep(1);
+            struct hashnode buffer;
+            if( htable_del(ht,j,&buffer) )
+            {
+                printf("del %d:%s\n",buffer.key, (char *)buffer.value);
+                free(buffer.value);
+            }
+        }
+        i++;
     }
     pthread_exit(0);
 }
@@ -40,30 +47,16 @@ int main()
 {
     htable_init(&ht,string_free);
 
-    int i;
-    pthread_t pthread_test[300];
-    for( i=0 ; i<200 ; i++ )
-    {
-        pthread_create(&pthread_test[i],NULL,pthread_add,(void *)i);
-    }
+    pthread_t producer[3], consumer;
+    pthread_create(&producer[0], NULL,pthread_add,(void *)30);
+    pthread_create(&producer[1], NULL,pthread_add,(void *)30);
+    pthread_create(&producer[2], NULL,pthread_add,(void *)30);
+    pthread_create(&consumer,NULL,pthread_del,NULL);
 
-    for( i=0 ; i<100 ; i++ )
-    {
-        pthread_create(&pthread_test[i+200],NULL,pthread_del,(void *)i);
-    }
-
-    for( i=0 ; i<200 ; i++ )
-    {
-        struct hashnode *buffer;
-        if( (buffer=htable_search(ht,i)) != NULL )
-            printf("search %d:%s\n",buffer->key,(char *)buffer->value);
-    }
-
-    for( i=0 ; i<300 ; i++ )
-    {
-        pthread_join(pthread_test[i],NULL);
-    }
-
+    pthread_join(producer[0],NULL);
+    pthread_join(producer[1],NULL);
+    pthread_join(producer[2],NULL);
+    pthread_join(consumer,NULL);
     htable_destroy(ht);
     return 0;
 }

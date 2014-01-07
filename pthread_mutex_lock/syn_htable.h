@@ -52,6 +52,7 @@ struct hashtable
 void htable_init(struct hashtable **ht, void (*value_free)(void *value));
 struct hashnode *hashnode_new(int key, void *value);
 void hashnode_free(struct hashtable *ht, struct hashnode *entry);
+void hashlist_free(struct hashtable *ht, struct hashnode *list);
 void htable_add(struct hashtable *ht,int key, void *value);
 int htable_del(struct hashtable *ht, int key, struct hashnode *valptr);
 struct hashnode *htable_search(struct hashtable *ht, int key);
